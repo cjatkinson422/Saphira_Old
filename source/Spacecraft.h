@@ -20,12 +20,12 @@ public:
 
 	vec6(*solver)(double, vec6);
 	PlanetarySystem* parentSystem;
-	PlanetaryBody* parentPlanet;
+	PlanetaryBody* parentBody;
 
 	Spacecraft(double startTime, vec3 startPos, vec3 startVel, PlanetarySystem* syst, string craftFile = "craft") {
 		parentSystem = syst;
 		bodyMesh = new SceneObject("craft",startPos);
-		bodyMesh->setScale(100.0);
+		bodyMesh->setScale(10.0);
 		texHandler->loadTexture("craft", true, false);
 		bodyMat = new Material("DS_1", "craft");
 		bodyMat->addObj(bodyMesh);
@@ -119,7 +119,7 @@ public:
 		glBindVertexArray(0);
 	}
 	void genOrbitLines(PlanetaryBody* parent) {
-		parentPlanet = parent;
+		parentBody = parent;
 		lineMat = new Material("line", "NULL");
 		lineMat->matShader->use();
 		lineMat->matShader->setUniformV3("lineColor", vec3f{ 0.8f,0.8f,0.8f });
@@ -129,8 +129,13 @@ public:
 
 		std::vector<double> lineData;
 		bodyState newState;
+		bodyState newStateP;
 		for (int i = 0; i < propagationData.size(); ++i) {
-			newState = parentPlanet->interpEphIndex(propagationData[i].JDTDB);
+			newState = parentBody->interpEphIndex(propagationData[i].JDTDB);
+			if (parentBody->parentBody != NULL) {
+				newStateP = parentBody->parentBody->interpEphIndex(propagationData[i].JDTDB);
+				newState.position += newStateP.position;
+			}
 			lineData.push_back(propagationData[i].position[0] - newState.position[0]);
 			lineData.push_back(propagationData[i].position[1] - newState.position[1]);
 			lineData.push_back(propagationData[i].position[2] - newState.position[2]);
@@ -149,13 +154,17 @@ public:
 
 	}
 
+	void updateCraftPosition(double julian) {
+
+	}
+
 
 	void draw() {
 		bodyMat->draw();
 		if (lineMat) {
 			lineMat->matShader->use();
 			mat4 modelMat;
-			modelMat = (parentPlanet) ? TransMat(parentPlanet->getPosition()) : eye4();
+			modelMat = (parentBody) ? TransMat(parentBody->getPosition()) : eye4();
 			lineMat->matShader->setUniform4dv("model", &modelMat[0][0]);
 			glBindVertexArray(lineVAO);
 			glDrawArrays(GL_LINE_STRIP, 0, lineDataSize);

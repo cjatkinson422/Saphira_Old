@@ -49,8 +49,8 @@ int main() {
 	solarSystem->updateOrbitLines();
 
 	//set the spacecraft initial data
-	vec3 startPos = solarSystem->Planets[1]->moons[1]->getPosition() + vec3{ 0.0,1600.0,0.0 };
-	vec3 startVel = solarSystem->Planets[1]->moons[1]->getVelocity() + vec3{1.55,0.0,0.0};
+	vec3 startPos = solarSystem->Planets[1]->getPosition() + vec3{ 0.0,150000.0,0.0 };
+	vec3 startVel = solarSystem->Planets[1]->getVelocity() + vec3{30.0,0.0,0.0};
 	//vec3 startVel = vec3{ 0.0,0.0,0.0 };
 	
 	//create the craft to propagate
@@ -195,7 +195,7 @@ void loadPlanets(PlanetarySystem* solarSystem) {
 	//saturn loader
 	planetLoader saturnLoader;
 	saturnLoader.name = "saturn"; saturnLoader.shaderType = "DS_1"; saturnLoader.specular = true; saturnLoader.rings = true;
-	//solarSystem->loadPlanet(saturnLoader);
+	solarSystem->loadPlanet(saturnLoader);
 	cout << endl;
 	//uranus loade
 	planetLoader uranusLoader;

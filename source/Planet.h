@@ -36,6 +36,7 @@ class PlanetaryBody;
 class PlanetaryBody{
 public:
 	string name;
+	Planet * parentBody=NULL;
 
 	double mu;
 	vec3 velocity;
@@ -75,7 +76,6 @@ protected:
 
 class Moon : public PlanetaryBody {
 public:
-	Planet * parentBody;
 	Moon(bodyLoader moonToLoad, Planet* parent);
 
 	vec3 getLocalPosition();
