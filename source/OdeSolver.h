@@ -11,34 +11,44 @@ struct state {
 //there is some issue here as the errors are very large for the timesteps im using. Still trying to find the bug
 inline void vec3_rkf45(vec6 initial, double initTime, double deltaTime, double tolerance, vec6(*fun)(double, vec6),vector<state>* stateOutput) {
 	stateOutput->push_back(state{ initTime, vec3{ initial[0],initial[1],initial[2] }, vec3{ initial[3],initial[4],initial[5] } });
-	double h = deltaTime / 100.0;
-	double hmin = 1.0 / (24.0 * 60.0*60.0); // .01 second
+	double h = deltaTime / 1000.0;
+	double hmin = 1.0 / (24.0 * 60.0*60.0*10.0); // 0.1 second
 	double hmax = 1.0 / (24.0 * 4.0); // 15 minutes
 	double t = initTime;
-	double err,s,err2;
+	double err,s;
+	double totErr = 0;
 	vec6 y = initial;
 	vec6 y1;
 	vec6 z1;
 	vec6 k1, k2, k3, k4, k5, k6;
 
-	double r1 = (1.0 / 36.0); double r3 = (-128.0 / 4275.0); double r4 = (-2197.0 / 75240.0); double r5 = (1.0 / 50.0); double r6 = (2.0 / 55.0);
+	//define the RKF constants
+	double h2 = 0.25, h3 = (3.0 / 8.0), h4 = (12.0/13.0), h6 = 0.5;
+	double a2 = 0.25, a3 = (3.0 / 32.0), a4 = (1932.0 / 2197.0), a5 = (439.0 / 216.0), a6 = (-8.0 / 27.0);
+	double b3 = (9.0 / 32.0), b4 = (-7200.0 / 2197.0), b5 = (-8.0), b6 = (2.0);
+	double c4 = (7296.0 / 2197.0), c5 = (3680.0 / 513.0), c6 = (-3544.0 / 2565.0);
+	double d5 = (-845.0 / 4104.0), d6 = (1859.0 / 4104.0), e6=(-11.0/40.0);
+
+	double f1 = (16.0 / 135.0), f3 = (6656.0 / 12825.0), f4 = (28561.0 / 56430.0), f5 = (-9.0 / 50.0), f6 = (2.0 / 55.0);
+	double g1 = (25.0 / 216.0), g3 = (1408.0 / 2565.0), g4 = (2197.0 / 4104.0), g5 = (-1.0 / 5.0);
+	
 	double outputStep = 0.0;
-	double outputTime = 1.0 / (24.0*60.0*4.0);
+	double outputTime = 1.0 / (24.0*60.0*4.0); //output a point every ~15 seconds
 	bool contFlag = false;
 	bool warnFlag = false;
 	while (t + h < initTime + deltaTime) {
-		k1 = h * fun(t, y);
-		k2 = h * fun(t + 0.25*h, y + 0.25*k1);
-		k3 = h * fun(t + (3.0 / 8.0)*h, y + (3.0 / 32.0)*k1 + (9.0 / 32.0)*k2);
-		k4 = h * fun(t + (12.0 / 13.0)*h, y + (1932.0 / 2197.0)*k1 - (7200.0 / 2197.0)*k2 + (7296.0 / 2197.0)*k3);
-		k5 = h * fun(t + h, y + (439.0 / 216.0)*k1 - 8.0*k2 + (3680.0 / 513.0)*k3 - (845.0 / 4104.0)*k4);
-		k6 = h * fun(t + 0.5*h, y - (8.0 / 27.0)*k1 + 2.0*k2 - (3544.0 / 2565.0)*k3 + (1859.0 / 4104.0)*k4 - (11.0 / 40.0)*k5);
+		k1 = fun(t,          y);
+		k2 = fun(t + h2 * h, y + h*(a2 * k1));
+		k3 = fun(t + h3 * h, y + h*(a3 * k1 + b3 * k2));
+		k4 = fun(t + h4 * h, y + h*(a4 * k1 + b4 * k2 + c4 * k3));
+		k5 = fun(t + h,      y + h*(a5 * k1 + b5 * k2 + c5 * k3 + d5 * k4));
+		k6 = fun(t + h6 * h, y + h*(a6 * k1 + b6 * k2 + c6 * k3 + d6 * k4 + e6 * k5));
 
-		y1 = y + (25.0 / 216.0)*k1 + (1408.0 / 2565.0)*k3 + (2197.0 / 4101.0)*k4 - (1.0/5.0)*k5;
-		z1 = y + (16.0 / 135.0)*k1 + (6656.0 / 12825.0)*k3 + (28561.0 / 56430.0)*k4 - (9.0 / 50.0)*k5 + (2.0 / 55.0)*k6;
-
-		err2 = len(r1*k1+r3*k3+r4*k4+r5*k5+r6*k6);
+		y1 = y + h*(g1*k1 + g3 * k3 + g4 * k4 + g5 * k5);
+		z1 = y + h*(f1*k1 + f3 * k3 + f4 * k4 + f5 * k5 + f6 * k6);
+		
 		err = len(z1 - y1);
+
 		s = sqrt(sqrt((tolerance*h)/(2*err)));
 
 		if (err > tolerance) {
@@ -65,6 +75,7 @@ inline void vec3_rkf45(vec6 initial, double initTime, double deltaTime, double t
 			contFlag = false;
 			t += h;
 			y = y1;
+			totErr += err;
 			outputStep += h;
 			if (outputStep>outputTime) {
 				stateOutput->push_back(state{ t, vec3{ y1[0],y1[1],y1[2] }, vec3{ y1[3],y1[4],y1[5] } });
@@ -75,21 +86,26 @@ inline void vec3_rkf45(vec6 initial, double initTime, double deltaTime, double t
 				h = hmax;
 			}
 			else {
-				//h = h * s;
+				h = h * s;
 			}
 		}
 		
 	}
 	h = (initTime + deltaTime) - t;
 
-	k1 = h * fun(t, y);
-	k2 = h * fun(t + 0.25*h, y + 0.25*k1);
-	k3 = h * fun(t + (3.0 / 8.0)*h, y + (3.0 / 32.0)*k1 + (9.0 / 32.0)*k2);
-	k4 = h * fun(t + (12.0 / 13.0)*h, y + (1932.0 / 2197.0)*k1 - (7200.0 / 2197.0)*k2 + (7296.0 / 2197.0)*k3);
-	k5 = h * fun(t + h, y + (439.0 / 216.0)*k1 - 8.0*k2 + (3680.0 / 513.0)*k3 - (845.0 / 4104.0)*k4);
-	k6 = h * fun(t + 0.5*h, y - (8.0 / 27.0)*k1 + 2.0*k2 - (3544.0 / 2565.0)*k3 + (1859.0 / 4104)*k4 - (11.0 / 40.0)*k5);
+	k1 = fun(t, y);
+	k2 = fun(t + h2 * h, y + h * (a2 * k1));
+	k3 = fun(t + h3 * h, y + h * (a3 * k1 + b3 * k2));
+	k4 = fun(t + h4 * h, y + h * (a4 * k1 + b4 * k2 + c4 * k3));
+	k5 = fun(t + h, y + h * (a5 * k1 + b5 * k2 + c5 * k3 + d5 * k4));
+	k6 = fun(t + h6 * h, y + h * (a6 * k1 + b6 * k2 + c6 * k3 + d6 * k4 + e6 * k5));
 
-	y1 = y + (25.0 / 216.0)*k1 + (1408.0 / 2565.0)*k3 + (2197.0 / 4101.0)*k4 - (0.2)*k5;
+	y1 = y + h * (g1*k1 + g3 * k3 + g4 * k4 + g5 * k5);
+	z1 = y + h * (f1*k1 + f3 * k3 + f4 * k4 + f5 * k5 + f6 * k6);
+	err = len(z1 - y1);
+
+	totErr += err;
+	cout << "total error: " << totErr << " ";
 	t = initTime + deltaTime;
 	stateOutput->push_back(state{ t, vec3{ y1[0],y1[1],y1[2] }, vec3{ y1[3],y1[4],y1[5] } });
 }

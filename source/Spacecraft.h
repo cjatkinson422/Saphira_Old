@@ -58,7 +58,7 @@ public:
 		vec3_rkf45(odeInput, initTime, deltaTime, tolerance, solver, &propagationData);
 		cout << " done!" << endl;
 		FILE* file;
-		std::ofstream craftEpm("Ephemeris/Lander/craft1.epm");
+		std::ofstream craftEpm("Ephemeris/Lander/craft.epm");
 		if (craftEpm.is_open()) {
 			craftEpm.precision(20);
 			for (int i = 0; i < propagationData.size(); ++i) {

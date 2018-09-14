@@ -49,15 +49,15 @@ int main() {
 	solarSystem->updateOrbitLines();
 
 	//set the spacecraft initial data
-	vec3 startPos = solarSystem->Planets[1]->getPosition() + vec3{ 0.0,150000.0,0.0 };
-	vec3 startVel = solarSystem->Planets[1]->getVelocity() + vec3{30.0,0.0,0.0};
+	vec3 startPos = solarSystem->Planets[1]->moons[1]->getPosition() + vec3{ 0.0,6000.0,0.0 };
+	vec3 startVel = solarSystem->Planets[1]->moons[1]->getVelocity() + vec3{-0.5,0.0,-0.5};
 	//vec3 startVel = vec3{ 0.0,0.0,0.0 };
 	
 	//create the craft to propagate
 	Spacecraft* falcon = new Spacecraft(startTime, startPos, startVel, solarSystem);
 	falcon->solver = motionEqn;
 	//propagate the craft through given time and error
-	falcon->propagate(startTime, 5.0, 1e-5);
+	falcon->propagate(startTime, 10.0, 1e-10);
 	//falcon->loadEpm("craft1.epm");   //this loads saved propagation data so you dont have to propagate each time you run
 	falcon->genOrbitLines(solarSystem->Planets[1]);
 	//after propagation, solar system is in wrong state, so reset to intial
@@ -195,7 +195,7 @@ void loadPlanets(PlanetarySystem* solarSystem) {
 	//saturn loader
 	planetLoader saturnLoader;
 	saturnLoader.name = "saturn"; saturnLoader.shaderType = "DS_1"; saturnLoader.specular = true; saturnLoader.rings = true;
-	solarSystem->loadPlanet(saturnLoader);
+	//solarSystem->loadPlanet(saturnLoader);
 	cout << endl;
 	//uranus loade
 	planetLoader uranusLoader;
